@@ -78,6 +78,17 @@ class Asset_Manager {
 			\DUPLICATE_POST_CURRENT_VERSION,
 			true
 		);
+
+		\wp_register_script(
+			'duplicate_post_command_palette_script',
+			\plugins_url( \sprintf( 'js/dist/duplicate-post-command-palette-%s.js', $flattened_version ), \DUPLICATE_POST_FILE ),
+			[
+				'wp-i18n',
+			],
+			\DUPLICATE_POST_CURRENT_VERSION,
+			true
+		);
+		\wp_set_script_translations( 'duplicate_post_command_palette', 'duplicate-post' );
 	}
 
 	/**
@@ -118,6 +129,16 @@ class Asset_Manager {
 			'duplicatePost',
 			$data_object
 		);
+	}
+
+	/**
+	 * Enqueues the script for the command palette.
+	 *
+	 * @return void
+	 */
+	public function enqueue_command_palette_script() {
+		$handle = 'duplicate_post_command_palette_script';
+		\wp_enqueue_script( $handle );
 	}
 
 	/**

@@ -131,6 +131,7 @@ class Block_Editor {
 
 		$edit_js_object = $this->generate_js_object( $post );
 		$this->asset_manager->enqueue_edit_script( $edit_js_object );
+		$this->asset_manager->enqueue_command_palette_script();
 
 		if ( $this->permissions_helper->is_rewrite_and_republish_copy( $post ) ) {
 			$string_js_object = [
