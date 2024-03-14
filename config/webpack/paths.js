@@ -11,6 +11,7 @@ const entry = {
 	"duplicate-post-quick-edit": "./duplicate-post-quick-edit-script.js",
 	"duplicate-post-options": "./duplicate-post-options.js",
 	"duplicate-post-elementor": "./duplicate-post-elementor.js",
+	"duplicate-post-command-palette": "./command-palette.js",
 };
 
 /**
