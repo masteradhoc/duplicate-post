@@ -26,6 +26,7 @@ const wordpressPackages = [
 	"@wordpress/api-fetch",
 	"@wordpress/block-editor",
 	"@wordpress/blocks",
+	"@wordpress/commands",
 	"@wordpress/components",
 	"@wordpress/compose",
 	"@wordpress/data",

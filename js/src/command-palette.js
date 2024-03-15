@@ -1,3 +1,4 @@
+import { useCommandLoader } from '@wordpress/commands';
 import { select } from "@wordpress/data";
 import { __ } from '@wordpress/i18n';
 import { registerPlugin } from '@wordpress/plugins';
@@ -11,32 +12,49 @@ registerPlugin(
 	'duplicate-post-command-palette',
 	{
 		render: () => {
-			const currentPostStatus = select( 'core/editor' ).getEditedPostAttribute( 'status' );
-
-			if ( duplicatePost.newDraftLink !== '' ) {
-				wp.commands.useCommand(
-					{
-						name: "duplicate-post/new-draft",
-						label: __( "Copy to a new draft", "duplicate-post" ),
-						icon: icon,
-						callback: () => {
-							document.location = duplicatePost.newDraftLink
-						},
-					}
-				);
-			}
-			if (  currentPostStatus === 'publish' && duplicatePost.rewriteAndRepublishLink !== '' ) {
-				wp.commands.useCommand(
-					{
-						name: "duplicate-post/rewrite-republish",
-						label: __( "Rewrite & Republish", "duplicate-post" ),
-						icon: icon,
-						callback: () => {
-							document.location = duplicatePost.rewriteAndRepublishLink
-						},
-					}
-				);
-			}
+			useCommandLoader(
+				{
+					name: 'duplicate-post/command-palette',
+					hook: useDuplicatePostCommandLoader,
+				}
+			);
 		}
 	}
 );
+
+function useDuplicatePostCommandLoader( { search } ) {
+	const commands = [];
+
+	const currentPostStatus = select( 'core/editor' ).getEditedPostAttribute( 'status' );
+
+	if ( duplicatePost.newDraftLink !== '' ) {
+		commands.push(
+			{
+				name: "duplicate-post/new-draft",
+				label: __( "Copy to a new draft", "duplicate-post" ),
+				icon: icon,
+				callback: () => {
+					document.location = duplicatePost.newDraftLink
+				},
+			}
+		);
+	}
+
+	if (  currentPostStatus === 'publish' && duplicatePost.rewriteAndRepublishLink !== '' ) {
+		commands.push(
+			{
+				name: "duplicate-post/rewrite-republish",
+				label: __( "Rewrite & Republish", "duplicate-post" ),
+				icon: icon,
+				callback: () => {
+					document.location = duplicatePost.rewriteAndRepublishLink
+				},
+			}
+		);
+	}
+
+	return {
+		commands,
+		isLoading: false,
+	};
+}
