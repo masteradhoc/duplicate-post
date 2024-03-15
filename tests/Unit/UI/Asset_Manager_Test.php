@@ -88,19 +88,20 @@ final class Asset_Manager_Test extends TestCase {
 	 * @return void
 	 */
 	public function test_register_scripts() {
-		$utils                 = Mockery::mock( 'alias:\Yoast\WP\Duplicate_Post\Utils' );
-		$flattened_version     = '40';
-		$edit_script_url       = 'http://basic.wordpress.test/wp-content/plugins/duplicate-post/js/dist/duplicate-post-edit-40.js';
-		$strings_script_url    = 'http://basic.wordpress.test/wp-content/plugins/duplicate-post/js/dist/duplicate-post-strings-40.js';
-		$quick_edit_script_url = 'http://basic.wordpress.test/wp-content/plugins/duplicate-post/js/dist/duplicate-post-quick-edit-40.js';
-		$options_script_url    = 'http://basic.wordpress.test/wp-content/plugins/duplicate-post/js/dist/duplicate-post-options-40.js';
+		$utils                      = Mockery::mock( 'alias:\Yoast\WP\Duplicate_Post\Utils' );
+		$flattened_version          = '40';
+		$edit_script_url            = 'http://basic.wordpress.test/wp-content/plugins/duplicate-post/js/dist/duplicate-post-edit-40.js';
+		$strings_script_url         = 'http://basic.wordpress.test/wp-content/plugins/duplicate-post/js/dist/duplicate-post-strings-40.js';
+		$quick_edit_script_url      = 'http://basic.wordpress.test/wp-content/plugins/duplicate-post/js/dist/duplicate-post-quick-edit-40.js';
+		$options_script_url         = 'http://basic.wordpress.test/wp-content/plugins/duplicate-post/js/dist/duplicate-post-options-40.js';
+		$command_palette_script_url = 'http://basic.wordpress.test/wp-content/plugins/duplicate-post/js/dist/duplicate-post-command-palette-40.js';
 
 		$utils->expects( 'flatten_version' )
 			->with( \DUPLICATE_POST_CURRENT_VERSION )
 			->andReturn( $flattened_version );
 
 		Monkey\Functions\expect( '\plugins_url' )
-			->andReturn( $edit_script_url, $strings_script_url, $quick_edit_script_url, $options_script_url );
+			->andReturn( $edit_script_url, $strings_script_url, $quick_edit_script_url, $options_script_url, $command_palette_script_url );
 
 		Monkey\Functions\expect( '\wp_register_script' )
 			->with(
@@ -156,6 +157,23 @@ final class Asset_Manager_Test extends TestCase {
 				true
 			);
 
+		Monkey\Functions\expect( '\wp_register_script' )
+			->with(
+				'duplicate_post_command_palette_script',
+				$command_palette_script_url,
+				[
+					'wp-i18n',
+				],
+				\DUPLICATE_POST_CURRENT_VERSION,
+				true
+			);
+
+		Monkey\Functions\expect( '\wp_set_script_translations' )
+			->with(
+				'duplicate_post_command_palette',
+				'duplicate-post'
+			);
+
 		$this->instance->register_scripts();
 	}
 
@@ -191,6 +209,20 @@ final class Asset_Manager_Test extends TestCase {
 			->with( 'duplicate_post_edit_script', 'duplicatePost', [] );
 
 		$this->instance->enqueue_edit_script();
+	}
+
+	/**
+	 * Tests the enqueue_command_palette_script function.
+	 *
+	 * @covers \Yoast\WP\Duplicate_Post\UI\Asset_Manager::enqueue_command_palette_script
+	 *
+	 * @return void
+	 */
+	public function test_enqueue_command_palette_script() {
+		Monkey\Functions\expect( '\wp_enqueue_script' )
+			->with( 'duplicate_post_command_palette_script' );
+
+		$this->instance->enqueue_command_palette_script();
 	}
 
 	/**

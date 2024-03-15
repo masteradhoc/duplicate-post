@@ -335,6 +335,9 @@ final class Block_Editor_Test extends TestCase {
 			->expects( 'enqueue_edit_script' )
 			->with( $edit_js_object );
 
+		$this->asset_manager
+			->expects( 'enqueue_command_palette_script' );
+
 		$this->instance
 			->expects( 'get_check_permalink' )
 			->never();
@@ -431,6 +434,9 @@ final class Block_Editor_Test extends TestCase {
 		$this->asset_manager
 			->expects( 'enqueue_strings_script' )
 			->with( $string_js_object );
+
+		$this->asset_manager
+			->expects( 'enqueue_command_palette_script' );
 
 		$this->instance->enqueue_block_editor_scripts();
 	}
