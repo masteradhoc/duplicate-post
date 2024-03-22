@@ -160,24 +160,38 @@ class DuplicatePost {
 						</Button>
 					</PluginPostStatusInfo>
 				}
-				<PluginDocumentSettingPanel
-				name="duplicate-post-panel"
-				title={ __( "Duplicate Post", "duplicate-post" ) }
-				className="custom-panel"
-				>
-					<ToggleControl
-						label={ __( "Delete reference to original item.", "duplicate-post" ) }
-						help={
-							willBeDeletedReference
-								? __( "The reference will be deleted on update", "duplicate-post" )
-								: __( "The reference will be kept on update", "duplicate-post" )
-						}
-						checked={ willBeDeletedReference }
-						onChange={ (newValue) => {
-							setWillBeDeletedReference( newValue );
-						} }
-					/>
-				</PluginDocumentSettingPanel>
+				{ ( duplicatePost.originalPostTitle !== '' && duplicatePost.showOriginal === '1' ) &&
+					<PluginDocumentSettingPanel
+						name="duplicate-post-panel"
+						title={ __( "Duplicate Post", "duplicate-post" ) }
+						className="custom-panel"
+					>
+						<p>
+							{
+								sprintf(
+								/* translators: %s: post title. */
+									__(
+										'The original item this was copied from is: %s',
+										'duplicate-post'
+									),
+									duplicatePost.originalPostTitle
+								)
+							}
+						</p>
+						<ToggleControl
+							label={ __( "Delete reference to original item.", "duplicate-post" ) }
+							help={
+								willBeDeletedReference
+									? __( "The reference will be deleted on update", "duplicate-post" )
+									: __( "The reference will be kept on update", "duplicate-post" )
+							}
+							checked={ willBeDeletedReference }
+							onChange={ (newValue) => {
+								setWillBeDeletedReference( newValue );
+							} }
+						/>
+					</PluginDocumentSettingPanel>
+				}
 			</Fragment>
 		);
 	}

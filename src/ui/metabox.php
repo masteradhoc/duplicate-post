@@ -95,17 +95,10 @@ class Metabox {
 		<p id="duplicate-post-remove-original-description">
 			<?php
 			\printf(
-				\wp_kses(
-					/* translators: %s: post title */
-					\__(
-						'The original item this was copied from is: <span class="duplicate_post_original_item_title_span">%s</span>',
-						'duplicate-post'
-					),
-					[
-						'span' => [
-							'class' => [],
-						],
-					]
+				/* translators: %s: post title, linked to the post. */
+				\esc_html__(
+					'The original item this was copied from is: %s',
+					'duplicate-post'
 				),
 				Utils::get_edit_or_view_link( $original_item )  // phpcs:ignore WordPress.Security.EscapeOutput
 			);

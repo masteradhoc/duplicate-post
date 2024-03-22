@@ -151,6 +151,39 @@ class Utils {
 	}
 
 	/**
+	 * Returns a URL to edit, preview or view a post, in accordance to user capabilities.
+	 *
+	 * @param WP_Post $post Post ID or Post object.
+	 *
+	 * @return string|null The URL to edit, preview or view a post.
+	 */
+	public static function get_edit_or_view_url( $post ) {
+		$post = \get_post( $post );
+		if ( ! $post ) {
+			return null;
+		}
+
+		$can_edit_post    = \current_user_can( 'edit_post', $post->ID );
+		$post_type_object = \get_post_type_object( $post->post_type );
+
+		if ( $can_edit_post && $post->post_status !== 'trash' ) {
+			return \get_edit_post_link( $post->ID );
+		}
+		elseif ( \is_post_type_viewable( $post_type_object ) ) {
+			if ( \in_array( $post->post_status, [ 'pending', 'draft', 'future' ], true ) ) {
+				if ( $can_edit_post ) {
+					return \get_preview_post_link( $post );
+				}
+			}
+			elseif ( $post->post_status !== 'trash' ) {
+				return \get_permalink( $post->ID );
+			}
+		}
+
+		return '';
+	}
+
+	/**
 	 * Gets the ID of the original post intended to be rewritten with the copy for Rewrite & Republish.
 	 *
 	 * @param int $post_id The copy post ID.

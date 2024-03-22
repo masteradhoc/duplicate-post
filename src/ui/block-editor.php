@@ -229,12 +229,15 @@ class Block_Editor {
 		$is_rewrite_and_republish_copy = $this->permissions_helper->is_rewrite_and_republish_copy( $post );
 
 		return [
-			'newDraftLink'            => $this->get_new_draft_permalink(),
-			'rewriteAndRepublishLink' => $this->get_rewrite_republish_permalink(),
-			'showLinks'               => Utils::get_option( 'duplicate_post_show_link' ),
-			'showLinksIn'             => Utils::get_option( 'duplicate_post_show_link_in' ),
-			'rewriting'               => ( $is_rewrite_and_republish_copy ) ? 1 : 0,
-			'originalEditURL'         => $this->get_original_post_edit_url(),
+			'newDraftLink'              => $this->get_new_draft_permalink(),
+			'rewriteAndRepublishLink'   => $this->get_rewrite_republish_permalink(),
+			'showLinks'                 => Utils::get_option( 'duplicate_post_show_link' ),
+			'showLinksIn'               => Utils::get_option( 'duplicate_post_show_link_in' ),
+			'rewriting'                 => ( $is_rewrite_and_republish_copy ) ? 1 : 0,
+			'originalEditURL'           => $this->get_original_post_edit_url(),
+			'originalPostTitle'         => $this->get_original_post_title(),
+			'originalPostEditOrViewURL' => $this->get_original_post_edit_or_view_url(),
+			'showOriginal'              => ( \intval( \get_option( 'duplicate_post_show_original_meta_box' ) ) === 1 ) ? 1 : 0,
 		];
 	}
 
@@ -270,5 +273,47 @@ class Block_Editor {
 				return $suggestion->object_id !== $original_post_id;
 			}
 		);
+	}
+
+	/**
+	 * Gets the title of the original post.
+	 *
+	 * @return string The original post title.
+	 */
+	private function get_original_post_title() {
+		$post = \get_post();
+
+		if ( ! $post instanceof WP_Post || ! $this->permissions_helper->is_rewrite_and_republish_copy( $post ) ) {
+			return '';
+		}
+
+		$original_post_id = Utils::get_original_post_id( $post->ID );
+
+		if ( ! $original_post_id ) {
+			return '';
+		}
+
+		return \_draft_or_post_title( $original_post_id );
+	}
+
+	/**
+	 * Gets the title of the original post.
+	 *
+	 * @return string The original post title.
+	 */
+	private function get_original_post_edit_or_view_url() {
+		$post = \get_post();
+
+		if ( ! $post instanceof WP_Post || ! $this->permissions_helper->is_rewrite_and_republish_copy( $post ) ) {
+			return '';
+		}
+
+		$original_post_id = Utils::get_original_post_id( $post->ID );
+
+		if ( ! $original_post_id ) {
+			return '';
+		}
+
+		return Utils::get_edit_or_view_url( \get_post( $original_post_id ) );
 	}
 }
