@@ -109,11 +109,10 @@ class Link_Actions_Watcher {
 	public function add_rewrite_and_republish_block_editor_notice() {
 		if ( ! empty( $_REQUEST['rewriting'] ) ) {
 			$notice = [
-				'text'          =>
-					\__(
-						'You can now start rewriting your post in this duplicate of the original post. If you click "Republish", this rewritten post will replace the original post.',
-						'duplicate-post'
-					),
+				'text'          => \__(
+					'You can now start rewriting your post in this duplicate of the original post. If you click "Republish", this rewritten post will replace the original post.',
+					'duplicate-post'
+				),
 				'status'        => 'warning',
 				'isDismissible' => true,
 			];
