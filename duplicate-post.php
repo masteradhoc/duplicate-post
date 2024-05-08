@@ -76,16 +76,6 @@ function __duplicate_post_main() {
 }
 // phpcs:enable
 
-/**
- * Initialises the internationalisation domain.
- *
- * @return void
- */
-function duplicate_post_load_plugin_textdomain() {
-	load_plugin_textdomain( 'duplicate-post', false, basename( __DIR__ ) . '/languages/' );
-}
-add_action( 'plugins_loaded', 'duplicate_post_load_plugin_textdomain' );
-
 add_filter( 'plugin_action_links_' . plugin_basename( __FILE__ ), 'duplicate_post_plugin_actions', 10 );
 
 /**
