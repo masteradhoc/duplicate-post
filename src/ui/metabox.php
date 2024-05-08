@@ -61,7 +61,10 @@ class Metabox {
 					$post_type,
 					'side',
 					'default',
-					[ 'original' => $original_item ]
+					[
+						'original' => $original_item,
+						'__back_compat_meta_box' => true,
+					]
 				);
 			}
 		}
@@ -70,8 +73,8 @@ class Metabox {
 	/**
 	 * Outputs the HTML for the metabox.
 	 *
-	 * @param WP_Post $post    The current post.
-	 * @param array   $metabox The array containing the metabox data.
+	 * @param WP_Post                                    $post    The current post.
+	 * @param array<string, <string, null|WP_Post|bool>> $metabox The array containing the metabox data.
 	 *
 	 * @return void
 	 */
