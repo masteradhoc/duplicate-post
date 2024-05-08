@@ -235,9 +235,10 @@ class Block_Editor {
 			'showLinksIn'               => Utils::get_option( 'duplicate_post_show_link_in' ),
 			'rewriting'                 => ( $is_rewrite_and_republish_copy ) ? 1 : 0,
 			'originalEditURL'           => $this->get_original_post_edit_url(),
-			'originalPostTitle'         => $this->get_original_post_title(),
-			'originalPostEditOrViewURL' => $this->get_original_post_edit_or_view_url(),
-			'showOriginal'              => ( \intval( \get_option( 'duplicate_post_show_original_meta_box' ) ) === 1 ) ? 1 : 0,
+			'originalPostTitle'         => $this->get_original_post_title( $post ),
+			'originalPostEditOrViewURL' => $this->get_original_post_edit_or_view_url( $post ),
+			'originalPostAriaLabel'     => $this->get_original_post_aria_label( $post ),
+			'showOriginal'              => ( (int) \get_option( 'duplicate_post_show_original_meta_box' ) === 1 ) ? 1 : 0,
 		];
 	}
 
@@ -278,12 +279,12 @@ class Block_Editor {
 	/**
 	 * Gets the title of the original post.
 	 *
+	 * @param WP_Post $post The current post object.
+	 *
 	 * @return string The original post title.
 	 */
-	private function get_original_post_title() {
-		$post = \get_post();
-
-		if ( ! $post instanceof WP_Post || ! $this->permissions_helper->is_rewrite_and_republish_copy( $post ) ) {
+	private function get_original_post_title( WP_Post $post ) {
+		if ( $this->permissions_helper->is_rewrite_and_republish_copy( $post ) ) {
 			return '';
 		}
 
@@ -299,12 +300,12 @@ class Block_Editor {
 	/**
 	 * Gets the title of the original post.
 	 *
+	 * @param WP_Post $post The current post object.
+	 *
 	 * @return string The original post title.
 	 */
-	private function get_original_post_edit_or_view_url() {
-		$post = \get_post();
-
-		if ( ! $post instanceof WP_Post || ! $this->permissions_helper->is_rewrite_and_republish_copy( $post ) ) {
+	private function get_original_post_edit_or_view_url( WP_Post $post ) {
+		if ( $this->permissions_helper->is_rewrite_and_republish_copy( $post ) ) {
 			return '';
 		}
 
@@ -315,5 +316,26 @@ class Block_Editor {
 		}
 
 		return Utils::get_edit_or_view_url( \get_post( $original_post_id ) );
+	}
+
+	/**
+	 * Gets the aria-label for the link to of the original post.
+	 *
+	 * @param WP_Post $post The current post object.
+	 *
+	 * @return string The  aria-label for the link to of the original post.
+	 */
+	private function get_original_post_aria_label( WP_Post $post ) {
+		if ( $this->permissions_helper->is_rewrite_and_republish_copy( $post ) ) {
+			return '';
+		}
+
+		$original_post_id = Utils::get_original_post_id( $post->ID );
+
+		if ( ! $original_post_id ) {
+			return '';
+		}
+
+		return Utils::get_edit_or_view_aria_label( \get_post( $original_post_id ) );
 	}
 }

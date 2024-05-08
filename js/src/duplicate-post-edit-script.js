@@ -1,9 +1,9 @@
 /* global duplicatePost, duplicatePostNotices */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { registerPlugin } from "@wordpress/plugins";
 import { PluginDocumentSettingPanel, PluginPostStatusInfo } from "@wordpress/edit-post";
-import { Fragment } from "@wordpress/element";
+import { Fragment, createInterpolateElement } from "@wordpress/element";
 import { Button, ToggleControl } from '@wordpress/components';
 import { __ } from "@wordpress/i18n";
 import { select, subscribe, dispatch } from "@wordpress/data";
@@ -131,9 +131,49 @@ class DuplicatePost {
 			return null;
 		}
 
-		const currentPostStatus = select( 'core/editor' ).getEditedPostAttribute( 'status' );
-
 		const [ willBeDeletedReference, setWillBeDeletedReference ] = useState( false );
+
+		const currentPostStatus          = select( 'core/editor' ).getEditedPostAttribute( 'status' );
+		const { useSelect, useDispatch } = wp.data;
+
+		const originalId = useSelect( ( select ) => {
+			return select( 'core/editor' ).getEditedPostAttribute( 'meta' )['_dp_original'];
+		}, [] );
+
+		let originalIdCopy = select( 'core/editor' ).getCurrentPost().meta['_dp_original'];
+
+		const { editPost } = useDispatch( 'core/editor' );
+
+		useEffect(() => {
+			if ( willBeDeletedReference ) {
+				editPost( { meta: { _dp_original: null } } );
+			} else {
+				editPost( { meta: { _dp_original: originalIdCopy } } );
+			}
+		}, [ willBeDeletedReference ] );
+
+		useEffect(() => {
+			let previousIsSavingPost = false;
+
+			const unsubscribe = subscribe(() => {
+				const isSavingPost     = select( 'core/editor' ).isSavingPost();
+				const isAutoSavingPost = select( 'core/editor' ).isAutosavingPost();
+				const oldValue         = select( 'core/editor' ).getEditedPostAttribute( 'meta' )['_dp_original'];
+
+				// Check for the transition from saving to not saving and not autosaving to apply the local toggle state to the meta
+				if ( previousIsSavingPost  && !isSavingPost && !isAutoSavingPost ) {
+					// Update the post meta only on successful save
+					const newValue = willBeDeletedReference ? null : originalId;
+					if ( newValue !== oldValue ) {
+						originalIdCopy = newValue;
+					}
+				}
+				previousIsSavingPost = isSavingPost;
+			});
+
+			return () => unsubscribe();
+		}, [ willBeDeletedReference ] );
+
 
 		return (
 			( duplicatePost.showLinksIn.submitbox === '1' ) &&
@@ -160,23 +200,24 @@ class DuplicatePost {
 						</Button>
 					</PluginPostStatusInfo>
 				}
-				{ ( duplicatePost.originalPostTitle !== '' && duplicatePost.showOriginal === '1' ) &&
+				{ ( duplicatePost.originalPostTitle !== '' && duplicatePost.showOriginal === '1' && originalIdCopy ) &&
 					<PluginDocumentSettingPanel
 						name="duplicate-post-panel"
 						title={ __( "Duplicate Post", "duplicate-post" ) }
 						className="custom-panel"
 					>
 						<p>
-							{
+							{ createInterpolateElement(
 								sprintf(
-								/* translators: %s: post title. */
-									__(
-										'The original item this was copied from is: %s',
-										'duplicate-post'
-									),
-									duplicatePost.originalPostTitle
-								)
-							}
+									/* translators: 1: opening link tag, 2: post title, 3: closing link tag. */
+									__( "The original item this was copied from is: %1$s%2$s%3$s", "wordpress-seo" ),
+									"<a>",
+									duplicatePost.originalPostTitle,
+									"</a>" ),
+								{
+									a: <a href={ duplicatePost.originalPostEditOrViewURL } aria-label={ duplicatePost.originalPostAriaLabel } />,
+								}
+							) }
 						</p>
 						<ToggleControl
 							label={ __( "Delete reference to original item.", "duplicate-post" ) }
@@ -186,8 +227,8 @@ class DuplicatePost {
 									: __( "The reference will be kept on update", "duplicate-post" )
 							}
 							checked={ willBeDeletedReference }
-							onChange={ (newValue) => {
-								setWillBeDeletedReference( newValue );
+							onChange={ () => {
+								setWillBeDeletedReference( ! willBeDeletedReference );
 							} }
 						/>
 					</PluginDocumentSettingPanel>

@@ -184,6 +184,43 @@ class Utils {
 	}
 
 	/**
+	 * Returns the aria-label for the link to edit, preview or view a post, in accordance to user capabilities.
+	 *
+	 * @param WP_Post $post Post ID or Post object.
+	 *
+	 * @return string|null The aria-label attribute for the link to edit, preview or view a post.
+	 */
+	public static function get_edit_or_view_aria_label( $post ) {
+		$post = \get_post( $post );
+		if ( ! $post ) {
+			return null;
+		}
+
+		$can_edit_post    = \current_user_can( 'edit_post', $post->ID );
+		$title            = \_draft_or_post_title( $post );
+		$post_type_object = \get_post_type_object( $post->post_type );
+
+		if ( $can_edit_post && $post->post_status !== 'trash' ) {
+			/* translators: Hidden accessibility text; %s: post title */
+			return \sprintf( \__( 'Edit &#8220;%s&#8221;', 'duplicate-post' ), $title );
+		}
+		elseif ( \is_post_type_viewable( $post_type_object ) ) {
+			if ( \in_array( $post->post_status, [ 'pending', 'draft', 'future' ], true ) ) {
+				if ( $can_edit_post ) {
+					/* translators: Hidden accessibility text; %s: post title */
+					return \sprintf( \__( 'Preview &#8220;%s&#8221;', 'duplicate-post' ), $title );
+				}
+			}
+			elseif ( $post->post_status !== 'trash' ) {
+				/* translators: Hidden accessibility text; %s: post title */
+				return \sprintf( \__( 'View &#8220;%s&#8221;', 'duplicate-post' ), $title );
+			}
+		}
+
+		return '';
+	}
+
+	/**
 	 * Gets the ID of the original post intended to be rewritten with the copy for Rewrite & Republish.
 	 *
 	 * @param int $post_id The copy post ID.
