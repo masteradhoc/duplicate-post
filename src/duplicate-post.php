@@ -63,6 +63,13 @@ class Duplicate_Post {
 	protected $watchers;
 
 	/**
+	 * Watchers object.
+	 *
+	 * @var Meta_Field
+	 */
+	protected $meta_field;
+
+	/**
 	 * Initializes the main class.
 	 */
 	public function __construct() {
@@ -73,35 +80,19 @@ class Duplicate_Post {
 		$this->post_republisher   = new Post_Republisher( $this->post_duplicator, $this->permissions_helper );
 		$this->revisions_migrator = new Revisions_Migrator();
 		$this->watchers           = new Watchers( $this->permissions_helper );
+		$this->meta_field         = new Meta_Field();
 
 		$this->register_hooks();
 	}
 
+	/**
+	 * Registers the hooks.
+	 *
+	 * @return void
+	 */
 	private function register_hooks() {
-
-		\add_action( 'init', [ $this, 'register_meta' ] );
-		\add_filter( 'is_protected_meta', [ $this, 'filter_protected_meta' ], 10, 3 );
-
 		$this->post_republisher->register_hooks();
 		$this->revisions_migrator->register_hooks();
-	}
-
-	public function register_meta() {
-		\register_post_meta(
-			'post',
-			'_dp_original',
-			[
-				'type'         => 'integer',
-				'single'       => true,
-				'show_in_rest' => true,
-			]
-		);
-	}
-
-	public function filter_protected_meta( $protected, $meta_key, $meta_type ) {
-		if ( $meta_key === '_dp_original' ) {
-			return false;
-		}
-		return $protected;
+		$this->meta_field->register_hooks();
 	}
 }
