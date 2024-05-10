@@ -265,12 +265,15 @@ final class Block_Editor_Test extends TestCase {
 	 * @return void
 	 */
 	public function test_enqueue_block_editor_scripts() {
-		$utils                      = Mockery::mock( 'alias:\Yoast\WP\Duplicate_Post\Utils' );
-		$post                       = Mockery::mock( WP_Post::class );
-		$new_draft_link             = 'http://fakeu.rl/new_draft';
-		$rewrite_and_republish_link = 'http://fakeu.rl/rewrite_and_republish';
-		$rewriting                  = 0;
-		$original_edit_url          = 'http://fakeu.rl/original';
+		$utils                       = Mockery::mock( 'alias:\Yoast\WP\Duplicate_Post\Utils' );
+		$post                        = Mockery::mock( WP_Post::class );
+		$new_draft_link              = 'http://fakeu.rl/new_draft';
+		$rewrite_and_republish_link  = 'http://fakeu.rl/rewrite_and_republish';
+		$rewriting                   = 0;
+		$original_edit_url           = 'http://fakeu.rl/original';
+		$original_post_title         = 'Original Post';
+		$original_post_edit_view_url = 'http://fakeu.rl/original_edit_or_view';
+		$original_post_aria_label    = 'Edit ¨Original Post¨';
 
 		$show_links = [
 			'new_draft'         => '1',
@@ -312,23 +315,48 @@ final class Block_Editor_Test extends TestCase {
 
 		$utils
 			->expects( 'get_option' )
+			->with( 'duplicate_post_show_link' )
 			->andReturn( $show_links );
 
 		$utils
 			->expects( 'get_option' )
+			->with( 'duplicate_post_show_link_in' )
 			->andReturn( $show_links_in );
 
 		$this->instance
 			->expects( 'get_original_post_edit_url' )
 			->andReturn( $original_edit_url );
 
+		$this->instance
+			->expects( 'get_original_post_title' )
+			->with( $post )
+			->andReturn( $original_post_title );
+
+		$this->instance
+			->expects( 'get_original_post_edit_or_view_url' )
+			->with( $post )
+			->andReturn( $original_post_edit_view_url );
+
+		$this->instance
+			->expects( 'get_original_post_aria_label' )
+			->with( $post )
+			->andReturn( $original_post_aria_label );
+
+		Monkey\Functions\expect( 'get_option' )
+			->with( 'duplicate_post_show_original_meta_box', 0 )
+			->andReturn( '1' );
+
 		$edit_js_object = [
-			'newDraftLink'            => $new_draft_link,
-			'rewriteAndRepublishLink' => $rewrite_and_republish_link,
-			'showLinks'               => $show_links,
-			'showLinksIn'             => $show_links_in,
-			'rewriting'               => $rewriting,
-			'originalEditURL'         => $original_edit_url,
+			'newDraftLink'              => $new_draft_link,
+			'rewriteAndRepublishLink'   => $rewrite_and_republish_link,
+			'showLinks'                 => $show_links,
+			'showLinksIn'               => $show_links_in,
+			'rewriting'                 => $rewriting,
+			'originalEditURL'           => $original_edit_url,
+			'originalPostTitle'         => $original_post_title,
+			'originalPostEditOrViewURL' => $original_post_edit_view_url,
+			'originalPostAriaLabel'     => $original_post_aria_label,
+			'showOriginal'              => 1,
 		];
 
 		$this->asset_manager
@@ -486,397 +514,6 @@ final class Block_Editor_Test extends TestCase {
 			->never();
 
 		$this->instance->enqueue_block_editor_scripts();
-	}
-
-	/**
-	 * Tests the get_new_draft_permalink function when a link is returned.
-	 *
-	 * @covers \Yoast\WP\Duplicate_Post\UI\Block_Editor::get_new_draft_permalink
-	 *
-	 * @return void
-	 */
-	public function test_get_new_draft_permalink_successful() {
-		$post = Mockery::mock( WP_Post::class );
-		$url  = 'http://basic.wordpress.test/wp-admin/admin.php?action=duplicate_post_new_draft&post=201&_wpnonce=94038b7dee';
-
-		Monkey\Functions\expect( '\get_post' )
-			->andReturn( $post );
-
-		$this->permissions_helper
-			->expects( 'should_links_be_displayed' )
-			->with( $post )
-			->andReturnTrue();
-
-		$this->link_builder
-			->expects( 'build_new_draft_link' )
-			->with( $post )
-			->andReturn( $url );
-
-		$this->assertSame( $url, $this->instance->get_new_draft_permalink() );
-	}
-
-	/**
-	 * Tests the get_new_draft_permalink function when a link should not be
-	 * displayed.
-	 *
-	 * @covers \Yoast\WP\Duplicate_Post\UI\Block_Editor::get_new_draft_permalink
-	 *
-	 * @return void
-	 */
-	public function test_get_new_draft_permalink_unsuccessful() {
-		$post = Mockery::mock( WP_Post::class );
-
-		Monkey\Functions\expect( '\get_post' )
-			->andReturn( $post );
-
-		$this->permissions_helper
-			->expects( 'should_links_be_displayed' )
-			->with( $post )
-			->andReturnFalse();
-
-		$this->link_builder
-			->expects( 'build_new_draft_link' )
-			->with( $post )
-			->never();
-
-		$this->assertSame( '', $this->instance->get_new_draft_permalink() );
-	}
-
-	/**
-	 * Tests the get_rewrite_republish_permalink function when a link is
-	 * returned.
-	 *
-	 * @covers \Yoast\WP\Duplicate_Post\UI\Block_Editor::get_rewrite_republish_permalink
-	 *
-	 * @return void
-	 */
-	public function test_get_rewrite_republish_permalink_successful() {
-		$post = Mockery::mock( WP_Post::class );
-		$url  = 'http://basic.wordpress.test/wp-admin/admin.php?action=duplicate_post_rewrite&post=201&_wpnonce=5e7abf68c9';
-
-		Monkey\Functions\expect( '\get_post' )
-			->andReturn( $post );
-
-		$this->permissions_helper
-			->expects( 'is_rewrite_and_republish_copy' )
-			->with( $post )
-			->andReturnFalse();
-
-		$this->permissions_helper
-			->expects( 'has_rewrite_and_republish_copy' )
-			->with( $post )
-			->andReturnFalse();
-
-		$this->permissions_helper
-			->expects( 'should_links_be_displayed' )
-			->with( $post )
-			->andReturnTrue();
-
-		$this->link_builder
-			->expects( 'build_rewrite_and_republish_link' )
-			->with( $post )
-			->andReturn( $url );
-
-		$this->assertSame( $url, $this->instance->get_rewrite_republish_permalink() );
-	}
-
-	/**
-	 * Tests the get_rewrite_republish_permalink function when the post is a Rewrite & Republish copy.
-	 *
-	 * @covers \Yoast\WP\Duplicate_Post\UI\Block_Editor::get_rewrite_republish_permalink
-	 *
-	 * @return void
-	 */
-	public function test_get_rewrite_republish_permalink_unsuccessful_is_rewrite_and_republish() {
-		$post = Mockery::mock( WP_Post::class );
-
-		Monkey\Functions\expect( '\get_post' )
-			->andReturn( $post );
-
-		$this->permissions_helper
-			->expects( 'is_rewrite_and_republish_copy' )
-			->with( $post )
-			->andReturnTrue();
-
-		$this->permissions_helper
-			->expects( 'has_rewrite_and_republish_copy' )
-			->with( $post )
-			->never();
-
-		$this->permissions_helper
-			->expects( 'should_links_be_displayed' )
-			->with( $post )
-			->never();
-
-		$this->link_builder
-			->expects( 'build_rewrite_and_republish_link' )
-			->with( $post )
-			->never();
-
-		$this->assertSame( '', $this->instance->get_rewrite_republish_permalink() );
-		$this->assertTrue( Monkey\Filters\applied( 'duplicate_post_show_link' ) === 0 );
-	}
-
-	/**
-	 * Tests the get_rewrite_republish_permalink function when the post has a Rewrite & Republish copy.
-	 *
-	 * @covers \Yoast\WP\Duplicate_Post\UI\Block_Editor::get_rewrite_republish_permalink
-	 *
-	 * @return void
-	 */
-	public function test_get_rewrite_republish_permalink_unsuccessful_has_a_rewrite_and_republish() {
-		$post = Mockery::mock( WP_Post::class );
-
-		Monkey\Functions\expect( '\get_post' )
-			->andReturn( $post );
-
-		$this->permissions_helper
-			->expects( 'is_rewrite_and_republish_copy' )
-			->with( $post )
-			->andReturnFalse();
-
-		$this->permissions_helper
-			->expects( 'has_rewrite_and_republish_copy' )
-			->with( $post )
-			->andReturnTrue();
-
-		$this->permissions_helper
-			->expects( 'should_links_be_displayed' )
-			->with( $post )
-			->never();
-
-		$this->link_builder
-			->expects( 'build_rewrite_and_republish_link' )
-			->with( $post )
-			->never();
-
-		$this->assertSame( '', $this->instance->get_rewrite_republish_permalink() );
-	}
-
-	/**
-	 * Tests the get_rewrite_republish_permalink function when the links should not be displayed.
-	 *
-	 * @covers \Yoast\WP\Duplicate_Post\UI\Block_Editor::get_rewrite_republish_permalink
-	 *
-	 * @return void
-	 */
-	public function test_get_rewrite_republish_permalink_unsuccessful_links_should_not_be_displayed() {
-		$post              = Mockery::mock( WP_Post::class );
-		$post->post_status = 'publish';
-
-		Monkey\Functions\expect( '\get_post' )
-			->andReturn( $post );
-
-		$this->permissions_helper
-			->expects( 'is_rewrite_and_republish_copy' )
-			->with( $post )
-			->andReturnFalse();
-
-		$this->permissions_helper
-			->expects( 'has_rewrite_and_republish_copy' )
-			->with( $post )
-			->andReturnFalse();
-
-		$this->permissions_helper
-			->expects( 'should_links_be_displayed' )
-			->with( $post )
-			->andReturnFalse();
-
-		$this->link_builder
-			->expects( 'build_rewrite_and_republish_link' )
-			->with( $post )
-			->never();
-
-		$this->assertSame( '', $this->instance->get_rewrite_republish_permalink() );
-	}
-
-	/**
-	 * Tests the get_check_permalink function when a link is returned.
-	 *
-	 * @covers \Yoast\WP\Duplicate_Post\UI\Block_Editor::get_check_permalink
-	 *
-	 * @return void
-	 */
-	public function test_get_check_permalink_successful() {
-		$post = Mockery::mock( WP_Post::class );
-		$url  = 'http://basic.wordpress.test/wp-admin/admin.php?action=duplicate_post_check_changes&post=201&_wpnonce=5e7abf68c9';
-
-		Monkey\Functions\expect( '\get_post' )
-			->andReturn( $post );
-
-		$this->permissions_helper
-			->expects( 'is_rewrite_and_republish_copy' )
-			->with( $post )
-			->andReturnTrue();
-
-		$this->link_builder
-			->expects( 'build_check_link' )
-			->with( $post )
-			->andReturn( $url );
-
-		$this->assertSame( $url, $this->instance->get_check_permalink() );
-	}
-
-	/**
-	 * Tests the get_check_permalink function when the post is not intended for
-	 * Rewrite & Republish.
-	 *
-	 * @covers \Yoast\WP\Duplicate_Post\UI\Block_Editor::get_check_permalink
-	 *
-	 * @return void
-	 */
-	public function test_get_check_permalink_not_rewrite_and_republish() {
-		$post = Mockery::mock( WP_Post::class );
-
-		Monkey\Functions\expect( '\get_post' )
-			->andReturn( $post );
-
-		$this->permissions_helper
-			->expects( 'is_rewrite_and_republish_copy' )
-			->with( $post )
-			->andReturnFalse();
-
-		$this->link_builder
-			->expects( 'build_check_link' )
-			->with( $post )
-			->never();
-
-		$this->assertSame( '', $this->instance->get_check_permalink() );
-	}
-
-	/**
-	 * Tests the successful get_original_post_edit_url.
-	 *
-	 * @covers \Yoast\WP\Duplicate_Post\UI\Block_Editor::get_original_post_edit_url
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 *
-	 * @return void
-	 */
-	public function test_get_original_post_edit_url_successful() {
-		$utils       = Mockery::mock( 'alias:\Yoast\WP\Duplicate_Post\Utils' );
-		$post        = Mockery::mock( WP_Post::class );
-		$post->ID    = 128;
-		$original_id = 64;
-		$nonce       = '12345678';
-
-		Monkey\Functions\expect( '\get_post' )
-			->andReturn( $post );
-
-		$this->permissions_helper
-			->expects( 'is_rewrite_and_republish_copy' )
-			->with( $post )
-			->andReturnTrue();
-
-		$utils
-			->expects( 'get_original_post_id' )
-			->with( $post->ID )
-			->andReturn( $original_id );
-
-		Monkey\Functions\expect( '\admin_url' )
-			->andReturnUsing(
-				static function ( $query_string ) {
-					return 'http://basic.wordpress.test/wp-admin/' . $query_string;
-				}
-			);
-
-		Monkey\Functions\expect( '\wp_create_nonce' )
-			->with( 'dp-republish' )
-			->andReturn( $nonce );
-
-		Monkey\Functions\expect( '\add_query_arg' )
-			->andReturnUsing(
-				static function ( $arguments, $query_string ) {
-					foreach ( $arguments as $key => $value ) {
-						$query_string .= '&' . $key . '=' . $value;
-					}
-
-					return $query_string;
-				}
-			);
-
-		$this->assertSame(
-			'http://basic.wordpress.test/wp-admin/post.php?action=edit&post=64&dprepublished=1&dpcopy=128&dpnonce=12345678',
-			$this->instance->get_original_post_edit_url()
-		);
-	}
-
-	/**
-	 * Tests the unsuccessful get_original_post_edit_url when the post is not a Rewrite & Republish copy.
-	 *
-	 * @covers \Yoast\WP\Duplicate_Post\UI\Block_Editor::get_original_post_edit_url
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 *
-	 * @return void
-	 */
-	public function test_get_original_post_edit_url_not_rewrite_and_republish() {
-		$post     = Mockery::mock( WP_Post::class );
-		$post->ID = 128;
-
-		Monkey\Functions\expect( '\get_post' )
-			->andReturn( $post );
-
-		$this->permissions_helper
-			->expects( 'is_rewrite_and_republish_copy' )
-			->with( $post )
-			->andReturnFalse();
-
-		$this->assertSame(
-			'',
-			$this->instance->get_original_post_edit_url()
-		);
-	}
-
-	/**
-	 * Tests the get_original_post_edit_url when there is no post.
-	 *
-	 * @covers \Yoast\WP\Duplicate_Post\UI\Block_Editor::get_original_post_edit_url
-	 *
-	 * @return void
-	 */
-	public function test_get_original_post_edit_url_no_post() {
-		Monkey\Functions\expect( '\get_post' )
-			->andReturnNull();
-
-		$this->assertSame(
-			'',
-			$this->instance->get_original_post_edit_url()
-		);
-	}
-
-	/**
-	 * Tests the get_original_post_edit_url function when there is no original.
-	 *
-	 * @covers \Yoast\WP\Duplicate_Post\UI\Block_Editor::get_original_post_edit_url
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 *
-	 * @return void
-	 */
-	public function test_get_original_post_edit_url_no_original() {
-		$utils       = Mockery::mock( 'alias:\Yoast\WP\Duplicate_Post\Utils' );
-		$post        = Mockery::mock( WP_Post::class );
-		$post->ID    = 128;
-		$original_id = '';
-
-		Monkey\Functions\expect( '\get_post' )
-			->andReturn( $post );
-
-		$this->permissions_helper
-			->expects( 'is_rewrite_and_republish_copy' )
-			->with( $post )
-			->andReturnTrue();
-
-		$utils
-			->expects( 'get_original_post_id' )
-			->with( $post->ID )
-			->andReturn( $original_id );
-
-		$this->assertSame(
-			'',
-			$this->instance->get_original_post_edit_url()
-		);
 	}
 
 	/**

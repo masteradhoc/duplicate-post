@@ -107,7 +107,10 @@ final class Metabox_Test extends TestCase {
 				'post',
 				'side',
 				'default',
-				[ 'original' => $original_item ]
+				[
+					'original'               => $original_item,
+					'__back_compat_meta_box' => true,
+				]
 			);
 
 		$this->instance->add_custom_metabox( 'post', $post );

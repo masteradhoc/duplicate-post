@@ -133,89 +133,13 @@ class Block_Editor {
 		$this->asset_manager->enqueue_edit_script( $edit_js_object );
 
 		if ( $this->permissions_helper->is_rewrite_and_republish_copy( $post ) ) {
+			$post_link_displayer = new Post_Link_Displayer( $post, $this->permissions_helper, $this->link_builder );
+
 			$string_js_object = [
-				'checkLink' => $this->get_check_permalink(),
+				'checkLink' => $post_link_displayer->get_check_permalink(),
 			];
 			$this->asset_manager->enqueue_strings_script( $string_js_object );
 		}
-	}
-
-	/**
-	 * Generates a New Draft permalink for the current post.
-	 *
-	 * @return string The permalink. Returns empty if the post can't be copied.
-	 */
-	public function get_new_draft_permalink() {
-		$post = \get_post();
-
-		if ( ! $post instanceof WP_Post || ! $this->permissions_helper->should_links_be_displayed( $post ) ) {
-			return '';
-		}
-
-		return $this->link_builder->build_new_draft_link( $post );
-	}
-
-	/**
-	 * Generates a Rewrite & Republish permalink for the current post.
-	 *
-	 * @return string The permalink. Returns empty if the post cannot be copied for Rewrite & Republish.
-	 */
-	public function get_rewrite_republish_permalink() {
-		$post = \get_post();
-
-		if (
-			! $post instanceof WP_Post
-			|| $this->permissions_helper->is_rewrite_and_republish_copy( $post )
-			|| $this->permissions_helper->has_rewrite_and_republish_copy( $post )
-			|| ! $this->permissions_helper->should_links_be_displayed( $post )
-		) {
-			return '';
-		}
-
-		return $this->link_builder->build_rewrite_and_republish_link( $post );
-	}
-
-	/**
-	 * Generates a Check Changes permalink for the current post, if it's intended for Rewrite & Republish.
-	 *
-	 * @return string The permalink. Returns empty if the post does not exist or it's not a Rewrite & Republish copy.
-	 */
-	public function get_check_permalink() {
-		$post = \get_post();
-
-		if ( ! $post instanceof WP_Post || ! $this->permissions_helper->is_rewrite_and_republish_copy( $post ) ) {
-			return '';
-		}
-
-		return $this->link_builder->build_check_link( $post );
-	}
-
-	/**
-	 * Generates a URL to the original post edit screen.
-	 *
-	 * @return string The URL. Empty if the copy post doesn't have an original.
-	 */
-	public function get_original_post_edit_url() {
-		$post = \get_post();
-
-		if ( ! $post instanceof WP_Post || ! $this->permissions_helper->is_rewrite_and_republish_copy( $post ) ) {
-			return '';
-		}
-
-		$original_post_id = Utils::get_original_post_id( $post->ID );
-
-		if ( ! $original_post_id ) {
-			return '';
-		}
-
-		return \add_query_arg(
-			[
-				'dprepublished' => 1,
-				'dpcopy'        => $post->ID,
-				'dpnonce'       => \wp_create_nonce( 'dp-republish' ),
-			],
-			\admin_url( 'post.php?action=edit&post=' . $original_post_id )
-		);
 	}
 
 	/**
@@ -223,22 +147,24 @@ class Block_Editor {
 	 *
 	 * @param WP_Post $post The current post object.
 	 *
-	 * @return array<string, mixed> The data to pass to JavaScript.
+	 * @return array<string, string|int> The data to pass to JavaScript.
 	 */
 	protected function generate_js_object( WP_Post $post ) {
 		$is_rewrite_and_republish_copy = $this->permissions_helper->is_rewrite_and_republish_copy( $post );
 
+		$post_link_displayer = new Post_Link_Displayer( $post, $this->permissions_helper, $this->link_builder );
+
 		return [
-			'newDraftLink'              => $this->get_new_draft_permalink(),
-			'rewriteAndRepublishLink'   => $this->get_rewrite_republish_permalink(),
+			'newDraftLink'              => $post_link_displayer->get_new_draft_permalink(),
+			'rewriteAndRepublishLink'   => $post_link_displayer->get_rewrite_republish_permalink(),
 			'showLinks'                 => Utils::get_option( 'duplicate_post_show_link' ),
 			'showLinksIn'               => Utils::get_option( 'duplicate_post_show_link_in' ),
 			'rewriting'                 => ( $is_rewrite_and_republish_copy ) ? 1 : 0,
-			'originalEditURL'           => $this->get_original_post_edit_url(),
-			'originalPostTitle'         => $this->get_original_post_title( $post ),
-			'originalPostEditOrViewURL' => $this->get_original_post_edit_or_view_url( $post ),
-			'originalPostAriaLabel'     => $this->get_original_post_aria_label( $post ),
-			'showOriginal'              => ( (int) \get_option( 'duplicate_post_show_original_meta_box' ) === 1 ) ? 1 : 0,
+			'originalEditURL'           => $post_link_displayer->get_original_post_edit_url(),
+			'originalPostTitle'         => $post_link_displayer->get_original_post_title(),
+			'originalPostEditOrViewURL' => $post_link_displayer->get_original_post_edit_or_view_url(),
+			'originalPostAriaLabel'     => $post_link_displayer->get_original_post_aria_label(),
+			'showOriginal'              => ( (int) \get_option( 'duplicate_post_show_original_meta_box',0  ) === 1 ) ? 1 : 0,
 		];
 	}
 
@@ -276,66 +202,61 @@ class Block_Editor {
 		);
 	}
 
+	/****** DEPRECATED METHODS ******/
+
 	/**
-	 * Gets the title of the original post.
+	 * Generates a New Draft permalink for the current post.
 	 *
-	 * @param WP_Post $post The current post object.
+	 * @codeCoverageIgnore
+	 * @deprecated 4.6
 	 *
-	 * @return string The original post title.
+	 * @return string The permalink. Returns empty if the post can't be copied.
 	 */
-	private function get_original_post_title( WP_Post $post ) {
-		if ( $this->permissions_helper->is_rewrite_and_republish_copy( $post ) ) {
-			return '';
-		}
+	public function get_new_draft_permalink() {
+		\_deprecated_function( __METHOD__, '4.6', 'Yoast\WP\Duplicate_Post\UI\Post_Link_Displayer::get_new_draft_permalink' );
 
-		$original_post_id = Utils::get_original_post_id( $post->ID );
-
-		if ( ! $original_post_id ) {
-			return '';
-		}
-
-		return \_draft_or_post_title( $original_post_id );
+		return '';
 	}
 
 	/**
-	 * Gets the title of the original post.
+	 * Generates a Rewrite & Republish permalink for the current post.
 	 *
-	 * @param WP_Post $post The current post object.
+	 * @codeCoverageIgnore
+	 * @deprecated 4.6
 	 *
-	 * @return string The original post title.
+	 * @return string The permalink. Returns empty if the post cannot be copied for Rewrite & Republish.
 	 */
-	private function get_original_post_edit_or_view_url( WP_Post $post ) {
-		if ( $this->permissions_helper->is_rewrite_and_republish_copy( $post ) ) {
-			return '';
-		}
+	public function get_rewrite_republish_permalink() {
+		\_deprecated_function( __METHOD__, '4.6', 'Yoast\WP\Duplicate_Post\UI\Post_Link_Displayer::get_rewrite_republish_permalink' );
 
-		$original_post_id = Utils::get_original_post_id( $post->ID );
-
-		if ( ! $original_post_id ) {
-			return '';
-		}
-
-		return Utils::get_edit_or_view_url( \get_post( $original_post_id ) );
+		return '';
 	}
 
 	/**
-	 * Gets the aria-label for the link to of the original post.
+	 * Generates a Check Changes permalink for the current post, if it's intended for Rewrite & Republish.
 	 *
-	 * @param WP_Post $post The current post object.
+	 * @codeCoverageIgnore
+	 * @deprecated 4.6
 	 *
-	 * @return string The  aria-label for the link to of the original post.
+	 * @return string The permalink. Returns empty if the post does not exist or it's not a Rewrite & Republish copy.
 	 */
-	private function get_original_post_aria_label( WP_Post $post ) {
-		if ( $this->permissions_helper->is_rewrite_and_republish_copy( $post ) ) {
-			return '';
-		}
+	public function get_check_permalink() {
+		\_deprecated_function( __METHOD__, '4.6', 'Yoast\WP\Duplicate_Post\UI\Post_Link_Displayer::get_check_permalink' );
 
-		$original_post_id = Utils::get_original_post_id( $post->ID );
+		return '';
+	}
 
-		if ( ! $original_post_id ) {
-			return '';
-		}
+	/**
+	 * Generates a URL to the original post edit screen.
+	 *
+	 * @codeCoverageIgnore
+	 * @deprecated 4.6
+	 *
+	 * @return string The URL. Empty if the copy post doesn't have an original.
+	 */
+	public function get_original_post_edit_url() {
+		\_deprecated_function( __METHOD__, '4.6', 'Yoast\WP\Duplicate_Post\UI\Post_Link_Displayer::get_original_post_edit_url' );
 
-		return Utils::get_edit_or_view_aria_label( \get_post( $original_post_id ) );
+		return '';
 	}
 }
